@@ -5,7 +5,8 @@ set -e  # Exit immediately if a command fails
 echo "----------------------------------------------------------"
 echo "Building Docker Image for DevOps Build Environment"
 
-IMAGE_NAME="jwalapj02/devops-build-dev"
+IMAGE_NAME=$1
+TAG=$2
 VERSION_FILE="version.txt"
 
 # Create version file if not exists
