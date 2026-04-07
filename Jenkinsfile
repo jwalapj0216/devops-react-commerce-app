@@ -75,27 +75,31 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                sh "chmod +x Script/deploy.sh"
-
-                script {
-                    if (env.BRANCH_NAME?.contains('dev')) {
-
-                        echo "🚀 Deploying DEV environment"
-                        sh "./Script/deploy.sh ${DEV_REPO}:latest-dev 3001"
-
-                    } else if (env.BRANCH_NAME?.contains('master') || env.BRANCH_NAME?.contains('main')) {
-
+       stage('Deploy') {
+        steps {
+            sh "chmod +x Script/deploy.sh"
+    
+            script {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker-cred',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+    
+                    if (env.BRANCH_NAME.contains('master') || env.BRANCH_NAME.contains('main')) {
+    
                         echo "🚀 Deploying PROD environment"
                         sh "./Script/deploy.sh ${PROD_REPO}:latest 3000"
-                    } else {
-                        echo "⚠️ Skipping deployment for branch ${env.BRANCH_NAME}"
-                    }
-                }
+    
+                    } else if (env.BRANCH_NAME.contains('dev')) {
+    
+                        echo "🚀 Deploying DEV environment"
+                        sh "./Script/deploy.sh ${DEV_REPO}:latest-dev 3001"
+                 }
             }
         }
     }
+}
 
     post {
         success {
