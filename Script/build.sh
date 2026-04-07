@@ -1,6 +1,7 @@
-#!/bin/bash
-
-IMAGE_NAME="jwalapj02/devops-build-dev:"
+gi#!/bin/bash
+echo "----------------------------------------------------------"
+echo "Building Docker Image for DevOps Build Environment""
+IMAGE_NAME="jwalapj02/devops-build-dev"
 VERSION_FILE="version.txt"
 
 # Create version file if not exists
@@ -19,3 +20,5 @@ docker build -t $IMAGE_NAME:v$NEW_VERSION .
 docker tag $IMAGE_NAME:v$NEW_VERSION $IMAGE_NAME:latest
 
 echo "Build complete: v$NEW_VERSION"
+
+echo "----------------------------------------------------------"
