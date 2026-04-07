@@ -29,7 +29,7 @@ pipeline {
         stage('Build Image') {
             steps {
                 sh "chmod +x Script/build.sh"
-                sh  sh "./Script/build.sh ${IMAGE_NAME} ${TAG}"
+                sh  "./Script/build.sh ${IMAGE_NAME} ${TAG}"
             }
         }
 
