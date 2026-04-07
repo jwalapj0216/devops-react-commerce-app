@@ -1,38 +1,26 @@
 #!/bin/bash
-
-set -e  # Exit immediately if a command fails
+set -e
 
 echo "----------------------------------------------------------"
-echo "Building Docker Image for DevOps Build Environment"
+echo "Building Docker Image"
 
 IMAGE_NAME=$1
 TAG=$2
-VERSION_FILE="version.txt"
 
-# Create version file if not exists
-if [ ! -f "$VERSION_FILE" ]; then
-  echo "0" > "$VERSION_FILE"
+if [ -z "$IMAGE_NAME" ] || [ -z "$TAG" ]; then
+  echo "❌ ERROR: IMAGE_NAME or TAG not provided"
+  exit 1
 fi
 
-# Read version safely
-VERSION=$(cat "$VERSION_FILE")
-NEW_VERSION=$((VERSION + 1))
+echo "Image Name: $IMAGE_NAME"
+echo "Tag: $TAG"
 
-# Update version file
-echo "$NEW_VERSION" > "$VERSION_FILE"
+# Build image with Jenkins tag
+docker build -t ${IMAGE_NAME}:${TAG} .
 
-echo "Building version v$NEW_VERSION"
+# Optional latest tag
+docker tag ${IMAGE_NAME}:${TAG} ${IMAGE_NAME}:latest
 
-# Check if Docker exists
-if ! command -v docker &> /dev/null
-then
-    echo "ERROR: Docker is not installed or not in PATH"
-    exit 1
-fi
-
-# Build and tag image
-docker build -t "$IMAGE_NAME:v$NEW_VERSION" .
-docker tag "$IMAGE_NAME:v$NEW_VERSION" "$IMAGE_NAME:latest"
-
-echo "Build complete: v$NEW_VERSION"
+echo "✅ Build complete: ${IMAGE_NAME}:${TAG}"
+echo "----------------------------------------------------------"
 echo "----------------------------------------------------------"
