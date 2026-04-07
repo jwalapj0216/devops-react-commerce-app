@@ -20,10 +20,12 @@ pipeline {
             }
         }
 
-        stage('Debug Branch Info') {
+        stage('Detect Branch') {
             steps {
-                echo "Running on branch: ${env.BRANCH_NAME}"
-                sh 'echo "---- ENV ----" && env | sort'
+                script {
+                    BRANCH = env.BRANCH_NAME.tokenize('/').last()
+                    echo "🚀 Running on branch: ${BRANCH}"
+                }
             }
         }
 
@@ -36,7 +38,7 @@ pipeline {
 
         stage('Verify Image') {
             steps {
-                sh "docker images | grep ${IMAGE_NAME} || true"
+                sh "docker images | grep ${IMAGE_NAME}"
             }
         }
 
@@ -45,7 +47,7 @@ pipeline {
                 script {
                     docker.withRegistry('', 'docker-cred') {
 
-                        if (env.BRANCH_NAME?.contains('dev')) {
+                        if (BRANCH == 'dev') {
 
                             echo "✅ DEV branch detected"
 
@@ -56,7 +58,7 @@ pipeline {
                             docker push ${DEV_REPO}:latest-dev
                             """
 
-                        } else if (env.BRANCH_NAME?.contains('master') || env.BRANCH_NAME?.contains('main')) {
+                        } else if (BRANCH == 'master' || BRANCH == 'main') {
 
                             echo "✅ PROD branch detected"
 
@@ -68,38 +70,41 @@ pipeline {
                             """
 
                         } else {
-                            echo "⚠️ Skipping push: Not dev/master/main branch (${env.BRANCH_NAME})"
+                            echo "⚠️ Skipping push for branch: ${BRANCH}"
                         }
                     }
                 }
             }
         }
 
-       stage('Deploy') {
-        steps {
-            sh "chmod +x Script/deploy.sh"
-    
-            script {
-                withCredentials([usernamePassword(
-                    credentialsId: 'docker-cred',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-    
-                    if (env.BRANCH_NAME.contains('master') || env.BRANCH_NAME.contains('main')) {
-    
-                        echo "🚀 Deploying PROD environment"
-                        sh "./Script/deploy.sh ${PROD_REPO}:latest 3000"
-    
-                    } else if (env.BRANCH_NAME.contains('dev')) {
-    
-                        echo "🚀 Deploying DEV environment"
-                        sh "./Script/deploy.sh ${DEV_REPO}:latest-dev 3001"
-                 }
+        stage('Deploy') {
+            steps {
+                sh "chmod +x Script/deploy.sh"
+
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-cred',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+
+                        if (BRANCH == 'dev') {
+
+                            echo "🚀 Deploying DEV environment"
+                            sh "./Script/deploy.sh ${DEV_REPO}:latest-dev 3001"
+
+                        } else if (BRANCH == 'master' || BRANCH == 'main') {
+
+                            echo "🚀 Deploying PROD environment"
+                            sh "./Script/deploy.sh ${PROD_REPO}:latest 3000"
+                        } else {
+                            echo "⚠️ Skipping deploy for branch: ${BRANCH}"
+                        }
+                    }
+                }
             }
         }
     }
-}
 
     post {
         success {
