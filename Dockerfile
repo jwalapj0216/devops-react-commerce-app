@@ -2,7 +2,7 @@
 FROM node:18-alpine
 
 # install serve package
-RUN npm install -g serve
+RUN npm install -g server
 
 # set working directory
 WORKDIR /app
