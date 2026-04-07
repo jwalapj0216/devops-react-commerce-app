@@ -20,16 +20,23 @@ pipeline {
             }
         }
 
-        stage('Print Branch Info') {
+        stage('Debug Branch Info') {
             steps {
                 echo "Running on branch: ${env.BRANCH_NAME}"
+                sh 'echo "---- ENV ----" && env | sort'
             }
         }
 
         stage('Build Image') {
             steps {
                 sh "chmod +x Script/build.sh"
-                sh  "./Script/build.sh ${IMAGE_NAME} ${TAG}"
+                sh "./Script/build.sh ${IMAGE_NAME} ${TAG}"
+            }
+        }
+
+        stage('Verify Image') {
+            steps {
+                sh "docker images | grep ${IMAGE_NAME} || true"
             }
         }
 
@@ -38,9 +45,9 @@ pipeline {
                 script {
                     docker.withRegistry('', 'docker-cred') {
 
-                        if (env.BRANCH_NAME == 'dev') {
+                        if (env.BRANCH_NAME?.contains('dev')) {
 
-                            echo "DEV branch detected"
+                            echo "✅ DEV branch detected"
 
                             sh """
                             docker tag ${IMAGE_NAME}:${TAG} ${DEV_REPO}:dev-${TAG}
@@ -49,9 +56,9 @@ pipeline {
                             docker push ${DEV_REPO}:latest-dev
                             """
 
-                        } else if (env.BRANCH_NAME == 'master') {
+                        } else if (env.BRANCH_NAME?.contains('master') || env.BRANCH_NAME?.contains('main')) {
 
-                            echo "MASTER branch detected"
+                            echo "✅ PROD branch detected"
 
                             sh """
                             docker tag ${IMAGE_NAME}:${TAG} ${PROD_REPO}:prod-${TAG}
@@ -59,8 +66,9 @@ pipeline {
                             docker push ${PROD_REPO}:prod-${TAG}
                             docker push ${PROD_REPO}:latest
                             """
+
                         } else {
-                            echo "Skipping push: Not dev or master branch"
+                            echo "⚠️ Skipping push: Not dev/master/main branch (${env.BRANCH_NAME})"
                         }
                     }
                 }
@@ -69,18 +77,20 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh "chmod +x deploy.sh"
+                sh "chmod +x Script/deploy.sh"
 
                 script {
-                    if (env.BRANCH_NAME == 'dev') {
+                    if (env.BRANCH_NAME?.contains('dev')) {
 
-                        echo "Deploying DEV environment"
-                        sh "./Script//deploy.sh ${DEV_REPO}:latest-dev 3001"
+                        echo "🚀 Deploying DEV environment"
+                        sh "./Script/deploy.sh ${DEV_REPO}:latest-dev 3001"
 
-                    } else if (env.BRANCH_NAME == 'master') {
+                    } else if (env.BRANCH_NAME?.contains('master') || env.BRANCH_NAME?.contains('main')) {
 
-                        echo "Deploying PROD environment"
+                        echo "🚀 Deploying PROD environment"
                         sh "./Script/deploy.sh ${PROD_REPO}:latest 3000"
+                    } else {
+                        echo "⚠️ Skipping deployment for branch ${env.BRANCH_NAME}"
                     }
                 }
             }
@@ -89,10 +99,10 @@ pipeline {
 
     post {
         success {
-            echo "Build Successful for ${env.BRANCH_NAME}"
+            echo "✅ Build Successful for ${env.BRANCH_NAME}"
         }
         failure {
-            echo "Build Failed for ${env.BRANCH_NAME}"
+            echo "❌ Build Failed for ${env.BRANCH_NAME}"
         }
     }
 }
