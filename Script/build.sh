@@ -1,4 +1,4 @@
-gi#!/bin/bash
+#!/bin/bash
 echo "----------------------------------------------------------"
 echo "Building Docker Image for DevOps Build Environment""
 IMAGE_NAME="jwalapj02/devops-build-dev"
