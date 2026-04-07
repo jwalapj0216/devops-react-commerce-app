@@ -36,7 +36,7 @@ pipeline {
         stage('Push Image') {
             steps {
                 script {
-                    docker.withRegistry('', 'dockerhub-creds') {
+                    docker.withRegistry('', 'docker-cred') {
 
                         if (env.BRANCH_NAME == 'dev') {
 
