@@ -3,12 +3,11 @@ set -e
 
 IMAGE=$1
 PORT=$2
-CONTAINER_NAME="react-container"
+CONTAINER_NAME="react-$PORT"
 
-if [ -z "$IMAGE" ] || [ -z "$PORT" ]; then
-  echo "❌ ERROR: IMAGE or PORT not provided"
-  exit 1
-fi
+# 🔐 Docker login (IMPORTANT)
+echo "🔐 Logging into Docker..."
+echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
 
 echo "--------------------------------------"
 echo "Deploying Image: $IMAGE on Port: $PORT"
@@ -25,4 +24,3 @@ echo "🚀 Running new container..."
 docker run -d -p $PORT:3000 --name $CONTAINER_NAME $IMAGE
 
 echo "✅ Deployment successful!"
-echo "--------------------------------------"
