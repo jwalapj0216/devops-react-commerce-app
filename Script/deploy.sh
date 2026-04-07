@@ -1,15 +1,28 @@
 #!/bin/bash
+set -e
 
-IMAGE_NAME="jwalapj02/devops-build-dev:tagname"
+IMAGE=$1
+PORT=$2
+CONTAINER_NAME="react-container"
 
-echo "Pulling latest image..."
-docker pull $IMAGE_NAME
+if [ -z "$IMAGE" ] || [ -z "$PORT" ]; then
+  echo "❌ ERROR: IMAGE or PORT not provided"
+  exit 1
+fi
 
-echo "Stopping existing container..."
-docker stop react-container || true
-docker rm react-container || true
+echo "--------------------------------------"
+echo "Deploying Image: $IMAGE on Port: $PORT"
+echo "--------------------------------------"
 
-echo "Running new container..."
-docker run -d -p 3000:3000 --name react-container $IMAGE_NAME
+echo "📥 Pulling latest image..."
+docker pull $IMAGE
 
-echo "Deployment successful!"
+echo "🛑 Stopping existing container..."
+docker stop $CONTAINER_NAME || true
+docker rm $CONTAINER_NAME || true
+
+echo "🚀 Running new container..."
+docker run -d -p $PORT:3000 --name $CONTAINER_NAME $IMAGE
+
+echo "✅ Deployment successful!"
+echo "--------------------------------------"
