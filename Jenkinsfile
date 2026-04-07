@@ -28,8 +28,8 @@ pipeline {
 
         stage('Build Image') {
             steps {
-                sh "chmod +x build.sh"
-                sh "./build.sh ${IMAGE_NAME} ${TAG}"
+                sh "chmod +x Script/build.sh"
+                sh  sh "./Script/build.sh ${IMAGE_NAME} ${TAG}"
             }
         }
 
@@ -75,12 +75,12 @@ pipeline {
                     if (env.BRANCH_NAME == 'dev') {
 
                         echo "Deploying DEV environment"
-                        sh "./deploy.sh ${DEV_REPO}:latest-dev 3001"
+                        sh "./Script//deploy.sh ${DEV_REPO}:latest-dev 3001"
 
                     } else if (env.BRANCH_NAME == 'master') {
 
                         echo "Deploying PROD environment"
-                        sh "./deploy.sh ${PROD_REPO}:latest 3000"
+                        sh "./Script/deploy.sh ${PROD_REPO}:latest 3000"
                     }
                 }
             }
