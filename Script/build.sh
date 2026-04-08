@@ -16,10 +16,9 @@ echo "Image Name: $IMAGE_NAME"
 echo "Tag: $TAG"
 
 # Build image with Jenkins tag
-docker build -t ${IMAGE_NAME}:${TAG} .
+docker build --no-cache -t $IMAGE_NAME:$TAG .
+docker tag $IMAGE_NAME:$TAG $IMAGE_NAME:latest
 
-# Optional latest tag
-docker tag ${IMAGE_NAME}:${TAG} ${IMAGE_NAME}:latest
 
 echo "✅ Build complete: ${IMAGE_NAME}:${TAG}"
 echo "----------------------------------------------------------"
