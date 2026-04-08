@@ -45,42 +45,49 @@ pipeline {
             }
         }
 
-        stage('Push Image') {
+       stage('Push Image') {
             steps {
                 script {
-
-                    if (env.BRANCH == 'dev') {
-
-                        echo "✅ DEV branch detected"
-
-                        sh """
-                            set -e
-                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-
-                            docker tag ${IMAGE_NAME}:${TAG} ${DEV_REPO}:dev-${TAG}
-                            docker tag ${IMAGE_NAME}:${TAG} ${DEV_REPO}:latest-dev
-
-                            docker push ${DEV_REPO}:dev-${TAG}
-                            docker push ${DEV_REPO}:latest-dev
-                        """
-
-                    } else if (env.BRANCH == 'master' || env.BRANCH == 'main') {
-
-                        echo "✅ PROD branch detected"
-
-                        sh """
-                            set -e
-                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-
-                            docker tag ${IMAGE_NAME}:${TAG} ${PROD_REPO}:prod-${TAG}
-                            docker tag ${IMAGE_NAME}:${TAG} ${PROD_REPO}:latest
-
-                            docker push ${PROD_REPO}:prod-${TAG}
-                            docker push ${PROD_REPO}:latest
-                        """
-
-                    } else {
-                        echo "⚠️ Skipping push for branch: ${env.BRANCH}"
+        
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-cred',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
+        
+                        if (env.BRANCH == 'dev') {
+        
+                            echo "✅ DEV branch detected"
+        
+                            sh """
+                                set -e
+                                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+        
+                                docker tag ${IMAGE_NAME}:${TAG} ${DEV_REPO}:dev-${TAG}
+                                docker tag ${IMAGE_NAME}:${TAG} ${DEV_REPO}:latest-dev
+        
+                                docker push ${DEV_REPO}:dev-${TAG}
+                                docker push ${DEV_REPO}:latest-dev
+                            """
+        
+                        } else if (env.BRANCH == 'master' || env.BRANCH == 'main') {
+        
+                            echo "✅ PROD branch detected"
+        
+                            sh """
+                                set -e
+                                echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+        
+                                docker tag ${IMAGE_NAME}:${TAG} ${PROD_REPO}:prod-${TAG}
+                                docker tag ${IMAGE_NAME}:${TAG} ${PROD_REPO}:latest
+        
+                                docker push ${PROD_REPO}:prod-${TAG}
+                                docker push ${PROD_REPO}:latest
+                            """
+        
+                        } else {
+                            echo "⚠️ Skipping push for branch: ${env.BRANCH}"
+                        }
                     }
                 }
             }
