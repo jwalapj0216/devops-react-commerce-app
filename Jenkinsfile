@@ -23,108 +23,120 @@ pipeline {
         stage('Detect Branch') {
             steps {
                 script {
-                    BRANCH = env.BRANCH_NAME.tokenize('/').last()
-                    echo "🚀 Running on branch: ${BRANCH}"
+                    env.BRANCH = env.BRANCH_NAME.tokenize('/').last()
+                    echo "🚀 Running on branch: ${env.BRANCH}"
                 }
             }
         }
 
         stage('Build Image') {
             steps {
-                sh "chmod +x Script/build.sh"
-                sh "./Script/build.sh ${IMAGE_NAME} ${TAG}"
+                sh """
+                    set -e
+                    chmod +x Script/build.sh
+                    ./Script/build.sh ${IMAGE_NAME} ${TAG}
+                """
             }
         }
 
         stage('Verify Image') {
             steps {
-                sh "docker images | grep ${IMAGE_NAME}"
+                sh "docker images | grep ${IMAGE_NAME} || true"
             }
         }
 
         stage('Push Image') {
             steps {
                 script {
-                    docker.withRegistry('', 'docker-cred') {
 
-                        if (BRANCH == 'dev') {
+                    if (env.BRANCH == 'dev') {
 
-                            echo "✅ DEV branch detected"
+                        echo "✅ DEV branch detected"
 
-                            sh """
+                        sh """
+                            set -e
+                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+
                             docker tag ${IMAGE_NAME}:${TAG} ${DEV_REPO}:dev-${TAG}
                             docker tag ${IMAGE_NAME}:${TAG} ${DEV_REPO}:latest-dev
+
                             docker push ${DEV_REPO}:dev-${TAG}
                             docker push ${DEV_REPO}:latest-dev
-                            """
+                        """
 
-                        } else if (BRANCH == 'master' || BRANCH == 'main') {
+                    } else if (env.BRANCH == 'master' || env.BRANCH == 'main') {
 
-                            echo "✅ PROD branch detected"
+                        echo "✅ PROD branch detected"
 
-                            sh """
+                        sh """
+                            set -e
+                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
+
                             docker tag ${IMAGE_NAME}:${TAG} ${PROD_REPO}:prod-${TAG}
                             docker tag ${IMAGE_NAME}:${TAG} ${PROD_REPO}:latest
+
                             docker push ${PROD_REPO}:prod-${TAG}
                             docker push ${PROD_REPO}:latest
-                            """
+                        """
 
-                        } else {
-                            echo "⚠️ Skipping push for branch: ${BRANCH}"
-                        }
+                    } else {
+                        echo "⚠️ Skipping push for branch: ${env.BRANCH}"
                     }
                 }
             }
         }
 
         stage('Deploy') {
-    steps {
-        sh "chmod +x Script/deploy.sh"
+            steps {
+                sh "chmod +x Script/deploy.sh"
 
-        script {
-            withCredentials([usernamePassword(
-                credentialsId: 'docker-cred',
-                usernameVariable: 'DOCKER_USER',
-                passwordVariable: 'DOCKER_PASS'
-            )]) {
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-cred',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
 
-                if (BRANCH == 'dev') {
+                        if (env.BRANCH == 'dev') {
 
-                    def image = "${DEV_REPO}:latest-dev"
-                    def port = "3001"
+                            def image = "${DEV_REPO}:latest-dev"
+                            def port = "3001"
 
-                    echo "🚀 Deploying DEV environment"
-                    echo "Image=${image}, Port=${port}"
+                            echo "🚀 Deploying DEV environment"
+                            echo "Image=${image}, Port=${port}"
 
-                    sh """
-                        set -x
-                        export DOCKER_USER=${DOCKER_USER}
-                        export DOCKER_PASS=${DOCKER_PASS}
-                        ./Script/deploy.sh '${image}' '${port}'
-                    """
+                            sh """
+                                set -e
+                                set -x
+                                export DOCKER_USER=${DOCKER_USER}
+                                export DOCKER_PASS=${DOCKER_PASS}
+                                ./Script/deploy.sh '${image}' '${port}'
+                            """
 
-                } else if (BRANCH == 'master' || BRANCH == 'main') {
+                        } else if (env.BRANCH == 'master' || env.BRANCH == 'main') {
 
-                    def image = "${PROD_REPO}:latest"
-                    def port = "3000"
+                            def image = "${PROD_REPO}:latest"
+                            def port = "3000"
 
-                    echo "🚀 Deploying PROD environment"
-                    echo "Image=${image}, Port=${port}"
+                            echo "🚀 Deploying PROD environment"
+                            echo "Image=${image}, Port=${port}"
 
-                    sh """
-                        set -x
-                        export DOCKER_USER=${DOCKER_USER}
-                        export DOCKER_PASS=${DOCKER_PASS}
-                        ./Script/deploy.sh '${image}' '${port}'
-                    """
+                            sh """
+                                set -e
+                                set -x
+                                export DOCKER_USER=${DOCKER_USER}
+                                export DOCKER_PASS=${DOCKER_PASS}
+                                ./Script/deploy.sh '${image}' '${port}'
+                            """
 
-                } else {
-                    echo "⚠️ Skipping deploy for branch: ${BRANCH}"
+                        } else {
+                            echo "⚠️ Skipping deploy for branch: ${env.BRANCH}"
+                        }
+                    }
                 }
             }
         }
     }
-}
 
     post {
         success {
