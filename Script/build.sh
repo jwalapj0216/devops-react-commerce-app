@@ -8,7 +8,7 @@ IMAGE_NAME=$1
 TAG=$2
 
 if [ -z "$IMAGE_NAME" ] || [ -z "$TAG" ]; then
-  echo "❌ ERROR: IMAGE_NAME or TAG not provided"
+  echo " ERROR: IMAGE_NAME or TAG not provided"
   exit 1
 fi
 
@@ -20,6 +20,6 @@ docker build --no-cache -t $IMAGE_NAME:$TAG .
 docker tag $IMAGE_NAME:$TAG $IMAGE_NAME:latest
 
 
-echo "✅ Build complete: ${IMAGE_NAME}:${TAG}"
+echo " Build complete: ${IMAGE_NAME}:${TAG}"
 echo "----------------------------------------------------------"
 echo "----------------------------------------------------------"
