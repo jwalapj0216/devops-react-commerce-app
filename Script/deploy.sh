@@ -21,7 +21,7 @@ if curl -f http://localhost:$PORT > /dev/null 2>&1; then
   echo " App is running successfully on port $PORT"
 else
   echo " App failed to start"
-  docker-compose logs
+  docker compose logs
   exit 1
 fi
 
