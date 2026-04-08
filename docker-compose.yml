@@ -1,8 +1,9 @@
-version: '3'
+version: '3.8'
 
 services:
   react-app:
-    build: .
-    container_name: react-node
+    image: ${IMAGE}
+    container_name: react-${PORT}
     ports:
-      - "3000:3000"
+      - "${PORT}:3000"
+    restart: always
