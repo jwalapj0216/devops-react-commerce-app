@@ -8,7 +8,6 @@ echo "-------------------------------------------------"
 IMAGE="$1"
 PORT="$2"
 
-# ✅ DEBUG PRINT
 echo "Received IMAGE=$IMAGE"
 echo "Received PORT=$PORT"
 
@@ -17,7 +16,6 @@ if [ -z "$IMAGE" ] || [ -z "$PORT" ]; then
   exit 1
 fi
 
-# Export for docker-compose
 export IMAGE
 export PORT
 
@@ -36,17 +34,21 @@ fi
 
 echo "Using compose: $COMPOSE"
 
-echo "🛑 Stopping old containers..."
+# 🔥 FORCE REMOVE OLD CONTAINER (CRITICAL FIX)
+echo "🛑 Removing old container if exists..."
+docker rm -f react-$PORT || true
+
+echo "🛑 Stopping old compose..."
 $COMPOSE down || true
 
-echo "🚀 Starting containers..."
+echo "🚀 Starting new container..."
 $COMPOSE up -d
 
 echo "🔍 Health check..."
 sleep 10
 
 if curl -f http://localhost:$PORT; then
-  echo "✅ App running"
+  echo "✅ App running on port $PORT"
 else
   echo "❌ App failed"
   $COMPOSE logs
