@@ -78,37 +78,53 @@ pipeline {
         }
 
         stage('Deploy') {
-            steps {
-                sh "chmod +x Script/deploy.sh"
+    steps {
+        sh "chmod +x Script/deploy.sh"
 
-                script {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'docker-cred',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )]) {
+        script {
+            withCredentials([usernamePassword(
+                credentialsId: 'docker-cred',
+                usernameVariable: 'DOCKER_USER',
+                passwordVariable: 'DOCKER_PASS'
+            )]) {
 
-                        if (BRANCH == 'dev') {
+                if (BRANCH == 'dev') {
 
-                            echo "🚀 Deploying DEV environment"
-                            sh "./Script/deploy.sh ${DEV_REPO}:latest-dev 3001"
+                    def image = "${DEV_REPO}:latest-dev"
+                    def port = "3001"
 
-                        } else if (BRANCH == 'master' || BRANCH == 'main') {
+                    echo "🚀 Deploying DEV environment"
+                    echo "Image=${image}, Port=${port}"
 
-                            echo "🚀 Deploying PROD environment"
-                            sh """
-                            export DOCKER_USER=${DOCKER_USER}
-                            export DOCKER_PASS=${DOCKER_PASS}
-                            ./Script/deploy.sh ${image} ${port}
-                            """
-                        } else {
-                            echo "⚠️ Skipping deploy for branch: ${BRANCH}"
-                        }
-                    }
+                    sh """
+                        set -x
+                        export DOCKER_USER=${DOCKER_USER}
+                        export DOCKER_PASS=${DOCKER_PASS}
+                        ./Script/deploy.sh '${image}' '${port}'
+                    """
+
+                } else if (BRANCH == 'master' || BRANCH == 'main') {
+
+                    def image = "${PROD_REPO}:latest"
+                    def port = "3000"
+
+                    echo "🚀 Deploying PROD environment"
+                    echo "Image=${image}, Port=${port}"
+
+                    sh """
+                        set -x
+                        export DOCKER_USER=${DOCKER_USER}
+                        export DOCKER_PASS=${DOCKER_PASS}
+                        ./Script/deploy.sh '${image}' '${port}'
+                    """
+
+                } else {
+                    echo "⚠️ Skipping deploy for branch: ${BRANCH}"
                 }
             }
         }
     }
+}
 
     post {
         success {
