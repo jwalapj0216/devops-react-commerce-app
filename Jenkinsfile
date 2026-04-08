@@ -97,10 +97,10 @@ pipeline {
 
                             echo "🚀 Deploying PROD environment"
                             sh """
-                                export DOCKER_USER=${DOCKER_USER}
-                                export DOCKER_PASS=${DOCKER_PASS}
-                                ./Script/deploy.sh ${image} ${port}
-                                """
+                            export DOCKER_USER=${DOCKER_USER}
+                            export DOCKER_PASS=${DOCKER_PASS}
+                            ./Script/deploy.sh ${image} ${port}
+                            """
                         } else {
                             echo "⚠️ Skipping deploy for branch: ${BRANCH}"
                         }
