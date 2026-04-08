@@ -1,21 +1,25 @@
 #!/bin/bash
+set -e
 
-IMAGE_NAME="jwalapj02/devops-build-dev:"
-VERSION_FILE="version.txt"
+echo "----------------------------------------------------------"
+echo "Building Docker Image"
 
-# Create version file if not exists
-if [ ! -f $VERSION_FILE ]; then
-  echo "0" > $VERSION_FILE
+IMAGE_NAME=$1
+TAG=$2
+
+if [ -z "$IMAGE_NAME" ] || [ -z "$TAG" ]; then
+  echo " ERROR: IMAGE_NAME or TAG not provided"
+  exit 1
 fi
 
-VERSION=$(cat $VERSION_FILE)
-NEW_VERSION=$((VERSION + 1))
+echo "Image Name: $IMAGE_NAME"
+echo "Tag: $TAG"
 
-echo $NEW_VERSION > $VERSION_FILE
+# Build image with Jenkins tag
+docker build --no-cache -t $IMAGE_NAME:$TAG .
+docker tag $IMAGE_NAME:$TAG $IMAGE_NAME:latest
 
-echo "Building version v$NEW_VERSION"
 
-docker build -t $IMAGE_NAME:v$NEW_VERSION .
-docker tag $IMAGE_NAME:v$NEW_VERSION $IMAGE_NAME:latest
-
-echo "Build complete: v$NEW_VERSION"
+echo " Build complete: ${IMAGE_NAME}:${TAG}"
+echo "----------------------------------------------------------"
+echo "----------------------------------------------------------"

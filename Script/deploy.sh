@@ -1,33 +1,56 @@
 #!/bin/bash
+set -e
+
 echo "-------------------------------------------------"
 echo "-------------deploy------------------------------"
 echo "-------------------------------------------------"
 
-echo "Image: $IMAGE"
-echo "Port: $PORT"
+IMAGE="$1"
+PORT="$2"
 
-echo "Pulling latest image..."
-docker pull $IMAGE_NAME
+echo "Received IMAGE=$IMAGE"
+echo "Received PORT=$PORT"
 
-echo " Stopping old containers..."
-docker compose down || true
-
-echo " Starting new containers..."
-docker compose up -d
-
-sleep 15
-
-if curl -f http://localhost:$PORT > /dev/null 2>&1; then
-  echo " App is running successfully on port $PORT"
-else
-  echo " App failed to start"
-  docker compose logs
+if [ -z "$IMAGE" ] || [ -z "$PORT" ]; then
+  echo " ERROR: IMAGE or PORT missing"
   exit 1
 fi
 
-#  CLEANUP
-echo " Cleaning up unused images..."
-docker image prune -f
+export IMAGE
+export PORT
 
-echo "Deployment successful!"
-echo "-------------------------------------------------"
+echo " Logging into Docker..."
+echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+
+echo " Pulling latest image..."
+docker pull $IMAGE
+
+# Detect compose
+if command -v docker-compose &> /dev/null; then
+    COMPOSE="docker-compose"
+else
+    COMPOSE="docker compose"
+fi
+
+echo "Using compose: $COMPOSE"
+
+#  FORCE REMOVE OLD CONTAINER (CRITICAL FIX)
+echo " Removing old container if exists..."
+docker rm -f react-$PORT || true
+
+echo " Stopping old compose..."
+$COMPOSE down || true
+
+echo " Starting new container..."
+$COMPOSE up -d
+
+echo " Health check..."
+sleep 10
+
+if curl -f http://localhost:$PORT; then
+  echo " App running on port $PORT"
+else
+  echo " App failed"
+  $COMPOSE logs
+  exit 1
+fi

@@ -20,47 +20,56 @@ pipeline {
             }
         }
 
-        stage('Print Branch Info') {
+        stage('Detect Branch') {
             steps {
-                echo "Running on branch: ${env.BRANCH_NAME}"
+                script {
+                    env.BRANCH = env.BRANCH_NAME.tokenize('/').last()
+                    echo "🚀 Running on branch: ${env.BRANCH}"
+                }
             }
         }
 
         stage('Build Image') {
             steps {
-                sh "chmod +x Script/build.sh"
-                sh  sh "./Script/build.sh ${IMAGE_NAME} ${TAG}"
+                sh """
+                chmod +x Script/build.sh
+                ./Script/build.sh ${IMAGE_NAME} ${TAG}
+                """
+            }
+        }
+
+        stage('Verify Image') {
+            steps {
+                sh "docker images | grep ${IMAGE_NAME} || true"
             }
         }
 
         stage('Push Image') {
             steps {
                 script {
-                    docker.withRegistry('', 'docker-cred') {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-cred',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
 
-                        if (env.BRANCH_NAME == 'dev') {
-
-                            echo "DEV branch detected"
+                        if (env.BRANCH == 'dev') {
 
                             sh """
-                            docker tag ${IMAGE_NAME}:${TAG} ${DEV_REPO}:dev-${TAG}
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
                             docker tag ${IMAGE_NAME}:${TAG} ${DEV_REPO}:latest-dev
-                            docker push ${DEV_REPO}:dev-${TAG}
                             docker push ${DEV_REPO}:latest-dev
                             """
 
-                        } else if (env.BRANCH_NAME == 'master') {
-
-                            echo "MASTER branch detected"
+                        } else if (env.BRANCH == 'master' || env.BRANCH == 'main') {
 
                             sh """
-                            docker tag ${IMAGE_NAME}:${TAG} ${PROD_REPO}:prod-${TAG}
+                            echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
                             docker tag ${IMAGE_NAME}:${TAG} ${PROD_REPO}:latest
-                            docker push ${PROD_REPO}:prod-${TAG}
                             docker push ${PROD_REPO}:latest
                             """
-                        } else {
-                            echo "Skipping push: Not dev or master branch"
                         }
                     }
                 }
@@ -69,18 +78,31 @@ pipeline {
 
         stage('Deploy') {
             steps {
-                sh "chmod +x deploy.sh"
+                sh "chmod +x Script/deploy.sh"
 
                 script {
-                    if (env.BRANCH_NAME == 'dev') {
+                    withCredentials([usernamePassword(
+                        credentialsId: 'docker-cred',
+                        usernameVariable: 'DOCKER_USER',
+                        passwordVariable: 'DOCKER_PASS'
+                    )]) {
 
-                        echo "Deploying DEV environment"
-                        sh "./Script//deploy.sh ${DEV_REPO}:latest-dev 3001"
+                        if (env.BRANCH == 'dev') {
 
-                    } else if (env.BRANCH_NAME == 'master') {
+                            sh """
+                            export DOCKER_USER=$DOCKER_USER
+                            export DOCKER_PASS=$DOCKER_PASS
+                            ./Script/deploy.sh "${DEV_REPO}:latest-dev" "3001"
+                            """
 
-                        echo "Deploying PROD environment"
-                        sh "./Script/deploy.sh ${PROD_REPO}:latest 3000"
+                        } else if (env.BRANCH == 'master' || env.BRANCH == 'main') {
+
+                            sh """
+                            export DOCKER_USER=$DOCKER_USER
+                            export DOCKER_PASS=$DOCKER_PASS
+                            ./Script/deploy.sh "${PROD_REPO}:latest" "3000"
+                            """
+                        }
                     }
                 }
             }
@@ -89,10 +111,10 @@ pipeline {
 
     post {
         success {
-            echo "Build Successful for ${env.BRANCH_NAME}"
+            echo "✅ Build Successful"
         }
         failure {
-            echo "Build Failed for ${env.BRANCH_NAME}"
+            echo "❌ Build Failed"
         }
     }
 }
