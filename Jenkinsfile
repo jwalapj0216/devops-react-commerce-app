@@ -96,7 +96,11 @@ pipeline {
                         } else if (BRANCH == 'master' || BRANCH == 'main') {
 
                             echo "🚀 Deploying PROD environment"
-                            sh "./Script/deploy.sh ${PROD_REPO}:latest 3000"
+                            sh """
+                                export DOCKER_USER=${DOCKER_USER}
+                                export DOCKER_PASS=${DOCKER_PASS}
+                                ./Script/deploy.sh ${image} ${port}
+                                """
                         } else {
                             echo "⚠️ Skipping deploy for branch: ${BRANCH}"
                         }
