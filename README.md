@@ -1,9 +1,11 @@
 Installing jenkins 
 ==================
 
-sudo apt update
+""" sudo apt update
+
 sudo apt install fontconfig openjdk-21-jre
-java -version
+
+java -version """
 
 
 sudo wget -O /etc/apt/keyrings/jenkins-keyring.asc \
